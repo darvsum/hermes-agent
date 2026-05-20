@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖北黄石天气</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .current-weather {
+            grid-column: 1 / -1;
+            text-align: center;
+        }
+
+        .temperature {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .condition {
+            font-size: 1.8rem;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .weather-icon {
+            width: 100px;
+            height: 100px;
+            margin: 10px auto;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .daily-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 10px;
+            color: white;
+        }
+
+        .info-item:nth-child(even) {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .hourly-forecast {
+            grid-column: 1 / -1;
+        }
+
+        .hourly-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .hourly-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .hourly-item {
+            text-align: center;
+            padding: 15px 10px;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            border-radius: 10px;
+        }
+
+        .hourly-time {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .hourly-temp {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 5px 0;
+        }
+
+        .hourly-weather {
+            font-size: 0.9rem;
+            color: #555;
+            margin: 5px 0;
+        }
+
+        .hourly-icon {
+            width: 50px;
+            height: 50px;
+            margin: 5px auto;
+        }
+
+        .rain-chance {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .update-time {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .temperature {
+                font-size: 3rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .hourly-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌤️ 湖北黄石天气</h1>
+            <p id="location">Huangshih, Hubei</p>
+        </div>
+
+        <div class="dashboard">
+            <!-- Current Weather -->
+            <div class="card current-weather">
+                <div id="current-icon" class="weather-icon">
+                    <img src="" alt="Weather Icon" id="weather-icon-img" style="width:100%;height:100%;">
+                </div>
+                <div id="temperature" class="temperature">--°C</div>
+                <div id="condition" class="condition">载入中...</div>
+                <div style="color: #666; margin-bottom: 15px;">
+                    体感温度: <span id="feels-like">--°C</span>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-label">💧 湿度</div>
+                        <div class="metric-value" id="humidity">--%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">💨 风速</div>
+                        <div class="metric-value" id="wind">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">🌡️ 气压</div>
+                        <div class="metric-value" id="pressure">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">☀️ 紫外线</div>
+                        <div class="metric-value" id="uv">--</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">☁️ 云量</div>
+                        <div class="metric-value" id="cloud">--%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">🕐 观测时间</div>
+                        <div class="metric-value" id="observation">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Info -->
+            <div class="card">
+                <div class="daily-info">
+                    <div class="info-item">
+                        <div class="info-label">🌅 日出</div>
+                        <div class="info-value" id="sunrise">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">🌇 日落</div>
+                        <div class="info-value" id="sunset">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">🔥 最高温度</div>
+                        <div class="info-value" id="max-temp">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">❄️ 最低温度</div>
+                        <div class="info-value" id="min-temp">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">☀️ 日照时长</div>
+                        <div class="info-value" id="sun-hours">--</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">📍 坐标</div>
+                        <div class="info-value" id="coordinates" style="font-size: 1rem;">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hourly Forecast -->
+            <div class="card hourly-forecast">
+                <div class="hourly-title">📊 未来12小时预报</div>
+                <div class="hourly-grid" id="hourly-grid">
+                    <!-- Hourly items will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="update-time">
+            最后更新: <span id="last-updated">--</span>
+        </div>
+    </div>
+
+    <script>
+        // Weather data
+        const weatherData = {
+                "location": "Huangshih, Hubei",
+                "coordinates": {
+                    "lat": "30.217",
+                    "lon": "115.100"
+                },
+                "current": {
+                    "temperature": "25°C",
+                    "feels_like": "27°C",
+                    "condition": "多云",
+                    "humidity": "68%",
+                    "wind_speed": "27 km/h",
+                    "wind_direction": "SE",
+                    "pressure": "1011 hPa",
+                    "uv_index": "6",
+                    "cloud_cover": "26%",
+                    "observation_time": "02:11 AM",
+                    "icon": "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0002_sunny_intervals.png"
+                },
+                "daily": {
+                    "max_temp": "28°C",
+                    "min_temp": "21°C",
+                    "sunrise": "05:26 AM",
+                    "sunset": "07:07 PM",
+                    "uv_index": "10",
+                    "sun_hours": "13.8"
+                },
+                "hourly": [
+                    {
+                        "time": "00:00",
+                        "temp": "23",
+                        "weather": "晴朗",
+                        "icon": "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0008_clear_sky_night.png",
+                        "chance_of_rain": "0"
+                    },
+                    {
+                        "time": "05:00",
+                        "temp": "22",
+                        "weather": "晴朗",
+                        "icon": "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0008_clear_sky_night.png",
+                        "chance_of_rain": "0"
+                    },
+                    {
+                        "time": "10:00",
+                        "temp": "21",
+                        "weather": "多云",
+                        "icon": "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0002_sunny_intervals.png",
+                        "chance_of_rain": "0"
+                    },
+                    {
+                        "time": "15:00",
+                        "temp": "24",
+                        "weather": "多云",
+                        "icon": "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0002_sunny_intervals.png",
+                        "chance_of_rain": "0"
+                    },
+                    {
+                        "time": "20:00",
+                        "temp": "27",
+                        "weather": "晴朗",
+                        "icon": "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0001_sunny.png",
+                        "chance_of_rain": "0"
+                    },
+                    {
+                        "time": "25:00",
+                        "temp": "28",
+                        "weather": "多云",
+                        "icon": "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0002_sunny_intervals.png",
+                        "chance_of_rain": "0"
+                    },
+                    {
+                        "time": "30:00",
+                        "temp": "25",
+                        "weather": "多云",
+                        "icon": "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0002_sunny_intervals.png",
+                        "chance_of_rain": "0"
+                    },
+                    {
+                        "time": "35:00",
+                        "temp": "25",
+                        "weather": "多云",
+                        "icon": "https://cdn.worldweatheronline.com/images/wsymbols01_png_64/wsymbol_0004_black_low_cloud.png",
+                        "chance_of_rain": "0"
+                    }
+                ],
+                "last_updated": "2026-05-16 11:21:45"
+        };
+
+        // Update the UI
+        function updateWeatherUI() {
+            // Location
+            document.getElementById('location').textContent = weatherData.location;
+
+            // Current weather
+            document.getElementById('temperature').textContent = weatherData.current.temperature;
+            document.getElementById('feels-like').textContent = weatherData.current.feels_like;
+            document.getElementById('condition').textContent = weatherData.current.condition;
+            document.getElementById('humidity').textContent = weatherData.current.humidity;
+            document.getElementById('wind').textContent = weatherData.current.wind_speed;
+            document.getElementById('pressure').textContent = weatherData.current.pressure;
+            document.getElementById('uv').textContent = weatherData.current.uv_index;
+            document.getElementById('cloud').textContent = weatherData.current.cloud_cover;
+            document.getElementById('observation').textContent = weatherData.current.observation_time;
+
+            // Weather icon
+            if (weatherData.current.icon) {
+                document.getElementById('weather-icon-img').src = weatherData.current.icon;
+            } else {
+                document.getElementById('weather-icon-img').src = weatherData.hourly[0].icon;
+            }
+
+            // Daily info
+            document.getElementById('sunrise').textContent = weatherData.daily.sunrise;
+            document.getElementById('sunset').textContent = weatherData.daily.sunset;
+            document.getElementById('max-temp').textContent = weatherData.daily.max_temp;
+            document.getElementById('min-temp').textContent = weatherData.daily.min_temp;
+            document.getElementById('sun-hours').textContent = weatherData.daily.sun_hours + 'h';
+            document.getElementById('coordinates').textContent = `${weatherData.coordinates.lat}, ${weatherData.coordinates.lon}`;
+
+            // Hourly forecast
+            const hourlyGrid = document.getElementById('hourly-grid');
+            hourlyGrid.innerHTML = '';
+
+            weatherData.hourly.forEach(hour => {
+                const hourlyItem = document.createElement('div');
+                hourlyItem.className = 'hourly-item';
+                hourlyItem.innerHTML = `
+                    <div class="hourly-time">${hour.time}</div>
+                    <img src="${hour.icon}" alt="${hour.weather}" class="hourly-icon">
+                    <div class="hourly-temp">${hour.temp}°C</div>
+                    <div class="hourly-weather">${hour.weather}</div>
+                    <div class="rain-chance">降雨: ${hour.chance_of_rain}%</div>
+                `;
+                hourlyGrid.appendChild(hourlyItem);
+            });
+
+            // Update time
+            document.getElementById('last-updated').textContent = weatherData.last_updated;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', updateWeatherUI);
+
+        // Auto-refresh every 30 minutes
+        setInterval(() => {
+            // In production, you would fetch fresh data here
+            // For now, we'll just update the timestamp
+            const now = new Date();
+            document.getElementById('last-updated').textContent = now.toLocaleString('zh-CN');
+        }, 30 * 60 * 1000);
+    </script>
+</body>
+</html>

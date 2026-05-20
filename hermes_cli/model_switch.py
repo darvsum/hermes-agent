@@ -1620,11 +1620,16 @@ def list_authenticated_providers(
                     )
                 else:
                     slug = custom_provider_slug(display_name)
-                groups[group_key] = {
+                # Propagate discover_models from the first entry in this group
+            # so the output loop can respect it.
+            _discover = entry.get("discover_models", True)
+
+            groups[group_key] = {
                     "slug": slug,
                     "name": display_name,
                     "api_url": api_url,
                     "models": [],
+                    "_discover_models": _discover,
                 }
 
             # The singular ``model:`` field only holds the currently
@@ -1688,11 +1693,17 @@ def list_authenticated_providers(
                 continue
             # Live model discovery from custom provider endpoints (matches
             # Section 3 behavior for user ``providers:`` entries).
-            if api_url and api_key:
+            # Respect ``discover_models: false`` to skip /models probing
+            # on endpoints that are unreachable or expose an unfiltered
+            # aggregator catalog (same guard as Section 3, line ~1518).
+            discover = grp.get("_discover_models", True)
+            if isinstance(discover, str):
+                discover = discover.lower() not in ("false", "no", "0")
+            if api_url and api_key and discover:
                 try:
                     from hermes_cli.models import fetch_api_models
 
-                    live_models = fetch_api_models(api_key, api_url)
+                    live_models = fetch_api_models(api_key, api_url, timeout=3.0)
                     if live_models:
                         grp["models"] = live_models
                         grp["total_models"] = len(live_models)

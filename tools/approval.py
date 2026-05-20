@@ -255,6 +255,32 @@ def _check_sudo_stdin_guard(command: str) -> tuple:
     return (False, None)
 
 
+def _check_terminal_cross_profile(command: str) -> str | None:
+    """Check if a terminal command attempts to access another user's profile.
+
+    Returns an error message string if blocked, or None if allowed.
+    This is an unconditional block that cannot be bypassed by yolo/approval mode.
+    """
+    cwd = os.environ.get("TERMINAL_CWD", "")
+    if not cwd:
+        return None
+    cwd_expanded = os.path.normpath(os.path.expanduser(cwd))
+    m = re.match(r".*/\.hermes/profiles/([^/]+)/workspace", cwd_expanded)
+    if not m:
+        return None  # Not a profile workspace
+    own_profile = m.group(1)
+    # Search the command for any reference to another profile under .hermes/profiles/
+    # Match patterns like: .hermes/profiles/<other_name>/ or /root/.hermes/profiles/<other_name>/
+    for match in re.finditer(r"\.hermes/profiles/([^/\s\"']+)", command):
+        referenced_profile = match.group(1)
+        if referenced_profile != own_profile:
+            return (
+                f"Access denied: command references profile '{referenced_profile}'. "
+                f"Your workspace is restricted to profile '{own_profile}'."
+            )
+    return None
+
+
 def detect_hardline_command(command: str) -> tuple:
     """Check if a command matches the unconditional hardline blocklist.
 
@@ -390,6 +416,33 @@ DANGEROUS_PATTERNS = [
     (r'\bsudo\b[^;|&\n]*?\s+-[a-z]*[sa][a-z]*\b',
      "sudo with combined-flag privilege escalation"),
 ]
+
+
+def _build_cross_profile_pattern() -> tuple:
+    """Build a regex pattern that detects terminal commands accessing other
+    users' profile directories when running in a multi-tenant profile."""
+    cwd = os.environ.get("TERMINAL_CWD", "")
+    if not cwd:
+        return None
+    import re as _re
+    cwd_expanded = os.path.normpath(os.path.expanduser(cwd))
+    m = _re.match(r".*/\.hermes/profiles/([^/]+)/workspace", cwd_expanded)
+    if not m:
+        return None
+    own_profile = m.group(1)
+    # Match any path under ~/.hermes/profiles/ that is NOT the own profile
+    # Pattern: .hermes/profiles/<not_own_name>/
+    # Escape the profile name for regex safety
+    escaped_own = _re.escape(own_profile)
+    pattern = (
+        r'\.hermes/profiles/(?!' + escaped_own + r'/)[^/\s"\']+/'
+    )
+    return (pattern, f"access another user's profile (you are '{own_profile}')")
+
+
+_cross_profile_check = _build_cross_profile_pattern()
+if _cross_profile_check:
+    DANGEROUS_PATTERNS.append(_cross_profile_check)
 
 
 # Pre-compiled variant (same rationale as HARDLINE_PATTERNS_COMPILED above).
@@ -1029,6 +1082,14 @@ def check_all_command_guards(command: str, env_type: str,
     # Skip containers for both checks
     if env_type in {"docker", "singularity", "modal", "daytona", "vercel_sandbox"}:
         return {"approved": True, "message": None}
+
+    # Cross-profile isolation: unconditionally block terminal commands that
+    # access another user's profile directory. This check is BEFORE hardline
+    # and yolo so no session-level setting can bypass it.
+    _cross_profile_err = _check_terminal_cross_profile(command)
+    if _cross_profile_err:
+        logger.warning("Cross-profile block: %s (command: %s)", _cross_profile_err, command[:200])
+        return {"approved": False, "blocked": True, "message": _cross_profile_err}
 
     # Hardline floor: unconditional block for catastrophic commands
     # (rm -rf /, mkfs, dd to raw device, shutdown/reboot, fork bomb,

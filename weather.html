@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖北黄石天气预报</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center text-indigo-800 mb-6">🌤️ 湖北黄石天气预报</h1>
+        
+        <!-- 当前天气 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">当前天气</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-blue-50 rounded-xl">
+                    <div class="text-4xl mb-2">🌡️</div>
+                    <div class="text-3xl font-bold text-indigo-600">23°C</div>
+                    <div class="text-gray-500">气温</div>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-xl">
+                    <div class="text-4xl mb-2">💧</div>
+                    <div class="text-3xl font-bold text-green-600">86%</div>
+                    <div class="text-gray-500">湿度</div>
+                </div>
+                <div class="text-center p-4 bg-purple-50 rounded-xl">
+                    <div class="text-4xl mb-2">🌬️</div>
+                    <div class="text-3xl font-bold text-purple-600">16</div>
+                    <div class="text-gray-500">风速 (km/h)</div>
+                </div>
+                <div class="text-center p-4 bg-yellow-50 rounded-xl">
+                    <div class="text-4xl mb-2">☀️</div>
+                    <div class="text-xl font-bold text-yellow-600">晴朗</div>
+                    <div class="text-gray-500">天气状况</div>
+                </div>
+            </div>
+            <div class="mt-4 text-center text-gray-600">
+                <p>体感温度: 25°C | 气压: 1010 hPa | 能见度: 10 km</p>
+                <p>更新时间: 2026-05-16 17:35</p>
+            </div>
+        </div>
+
+        <!-- 3天预报 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">未来3天预报</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- 今天 -->
+                <div class="bg-gradient-to-br from-yellow-100 to-orange-100 p-4 rounded-xl">
+                    <div class="text-center">
+                        <div class="text-lg font-bold text-gray-700 mb-2">今天</div>
+                        <div class="text-5xl mb-2">☀️</div>
+                        <div class="text-2xl font-bold text-orange-600">21°C - 28°C</div>
+                        <div class="text-gray-600 mt-2">晴朗</div>
+                        <div class="text-sm text-gray-500 mt-2">紫外线指数: 极强</div>
+                    </div>
+                </div>
+                
+                <!-- 明天 -->
+                <div class="bg-gradient-to-br from-gray-100 to-blue-100 p-4 rounded-xl">
+                    <div class="text-center">
+                        <div class="text-lg font-bold text-gray-700 mb-2">明天</div>
+                        <div class="text-5xl mb-2">🌦️</div>
+                        <div class="text-2xl font-bold text-blue-600">21°C - 26°C</div>
+                        <div class="text-gray-600 mt-2">多云转小雨</div>
+                        <div class="text-sm text-gray-500 mt-2">降雨概率: 高</div>
+                    </div>
+                </div>
+                
+                <!-- 后天 -->
+                <div class="bg-gradient-to-br from-gray-200 to-blue-200 p-4 rounded-xl">
+                    <div class="text-center">
+                        <div class="text-lg font-bold text-gray-700 mb-2">后天</div>
+                        <div class="text-5xl mb-2">🌧️</div>
+                        <div class="text-2xl font-bold text-blue-700">19°C - 23°C</div>
+                        <div class="text-gray-600 mt-2">中雨</div>
+                        <div class="text-sm text-gray-500 mt-2">降雨概率: 100%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 温度变化图表 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">24小时温度变化</h2>
+            <canvas id="tempChart" height="200"></canvas>
+        </div>
+
+        <!-- 详细信息 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">详细信息</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <div class="text-gray-500">日出时间</div>
+                    <div class="font-semibold">05:26 AM</div>
+                </div>
+                <div>
+                    <div class="text-gray-500">日落时间</div>
+                    <div class="font-semibold">07:07 PM</div>
+                </div>
+                <div>
+                    <div class="text-gray-500">月相</div>
+                    <div class="font-semibold">新月</div>
+                </div>
+                <div>
+                    <div class="text-gray-500">月出</div>
+                    <div class="font-semibold">04:27 AM</div>
+                </div>
+                <div>
+                    <div class="text-gray-500">月落</div>
+                    <div class="font-semibold">06:43 PM</div>
+                </div>
+                <div>
+                    <div class="text-gray-500">光照时长</div>
+                    <div class="font-semibold">13.8 小时</div>
+                </div>
+                <div>
+                    <div class="text-gray-500">风向</div>
+                    <div class="font-semibold">东南偏东 (115°)</div>
+                </div>
+                <div>
+                    <div class="text-gray-500">体感</div>
+                    <div class="font-semibold">25°C</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center text-gray-500 mt-6 text-sm">
+            数据来源: WorldWeatherOnline | 更新时间: 2026-05-16 17:35
+        </div>
+    </div>
+
+    <script>
+        // 温度变化图表
+        const ctx = document.getElementById('tempChart').getContext('2d');
+        const tempChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['0:00', '3:00', '6:00', '9:00', '12:00', '15:00', '18:00', '21:00'],
+                datasets: [{
+                    label: '温度 (°C)',
+                    data: [23, 22, 21, 24, 27, 28, 26, 25],
+                    borderColor: 'rgb(79, 70, 229)',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 15,
+                        max: 35
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

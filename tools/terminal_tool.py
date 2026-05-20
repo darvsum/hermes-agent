@@ -356,6 +356,33 @@ def _validate_workdir(workdir: str) -> str | None:
     return None
 
 
+def _check_profile_workdir_isolation(workdir: str) -> str | None:
+    """Block workdir that points to another user's profile directory."""
+    if not workdir:
+        return None
+    cwd = os.environ.get("TERMINAL_CWD", "")
+    if not cwd:
+        return None
+    import re as _re
+    cwd_expanded = os.path.normpath(os.path.expanduser(cwd))
+    m = _re.match(r"(.*/\.hermes/profiles/([^/]+))/workspace", cwd_expanded)
+    if not m:
+        return None
+    own_profile = m.group(2)
+    profiles_base = os.path.dirname(m.group(1))
+    resolved = os.path.normpath(os.path.expanduser(workdir))
+    if resolved.startswith(profiles_base + "/"):
+        rel = os.path.relpath(resolved, profiles_base)
+        other_profile = rel.split("/")[0]
+        if other_profile != own_profile:
+            return (
+                f"Access denied: workdir '{workdir}' belongs to profile "
+                f"'{other_profile}'. Your workspace is restricted to profile "
+                f"'{own_profile}'."
+            )
+    return None
+
+
 def _handle_sudo_failure(output: str, env_type: str) -> str:
     """
     Check for sudo failure and add helpful message for messaging contexts.
@@ -1903,6 +1930,18 @@ def terminal_tool(
                     "output": "",
                     "exit_code": -1,
                     "error": workdir_error,
+                    "status": "blocked"
+                }, ensure_ascii=False)
+
+            # Profile isolation: block workdir in other profiles
+            workdir_isolation_error = _check_profile_workdir_isolation(workdir)
+            if workdir_isolation_error:
+                logger.warning("Blocked cross-profile workdir: %s (command: %s)",
+                               workdir[:200], _safe_command_preview(command))
+                return json.dumps({
+                    "output": "",
+                    "exit_code": -1,
+                    "error": workdir_isolation_error,
                     "status": "blocked"
                 }, ensure_ascii=False)
 

@@ -1,0 +1,30 @@
+{
+  "city": "湖北黄石",
+  "coordinates": {
+    "lat": "30.217",
+    "lon": "115.1"
+  },
+  "current": {
+    "temp": "27",
+    "feels_like": "29",
+    "icon": "☀️",
+    "desc": "晴朗",
+    "humidity": "58",
+    "wind_speed": "28",
+    "wind_dir": "SE",
+    "pressure": "1009",
+    "visibility": "10",
+    "uv_index": "3",
+    "cloud_cover": "13"
+  },
+  "today": {
+    "date": "2026-05-16",
+    "max_temp": "28",
+    "min_temp": "21",
+    "sunrise": "05:26 AM",
+    "sunset": "07:07 PM",
+    "uv_index": "10"
+  },
+  "observation_time": "08:35 AM",
+  "generated_at": "2026-05-16 17:57:05"
+}

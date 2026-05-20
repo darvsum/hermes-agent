@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖北黄石天气 - 实时更新</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .weather-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .city-name {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .update-time {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .current-weather {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+        }
+        .temperature {
+            font-size: 4em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .weather-icon {
+            font-size: 3em;
+        }
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .detail-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .detail-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .detail-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        .forecast {
+            margin-top: 30px;
+        }
+        .forecast-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .forecast-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+        .forecast-item:hover {
+            transform: translateX(5px);
+        }
+        .forecast-date {
+            flex: 1;
+            font-weight: bold;
+            color: #333;
+        }
+        .forecast-weather {
+            flex: 1;
+            text-align: center;
+            color: #666;
+        }
+        .forecast-temp {
+            flex: 1;
+            text-align: right;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .weather-code {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-size: 1.2em;
+            padding: 20px;
+        }
+        .error {
+            text-align: center;
+            color: #e74c3c;
+            font-size: 1.2em;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="weather-card">
+        <div class="header">
+            <div class="city-name">🌍 湖北黄石</div>
+            <div class="update-time" id="update-time">更新时间: 加载中...</div>
+        </div>
+
+        <div id="weather-content">
+            <div class="loading">正在加载天气数据...</div>
+        </div>
+    </div>
+
+    <script>
+        const weatherCodes = {
+            113: { icon: '☀️', desc: '晴朗' },
+            116: { icon: '⛅', desc: '部分多云' },
+            119: { icon: '☁️', desc: '阴天' },
+            122: { icon: '🌥️', desc: '多云' },
+            143: { icon: '🌫️', desc: '雾' },
+            176: { icon: '🌦️', desc: '局部阵雨' },
+            263: { icon: '🌧️', desc: '细雨' },
+            266: { icon: '🌧️', desc: '毛毛雨' },
+            296: { icon: '🌧️', desc: '小雨' },
+            299: { icon: '🌧️', desc: '中雨' },
+            302: { icon: '🌧️', desc: '大雨' },
+            353: { icon: '🌦️', desc: '阵雨' },
+            365: { icon: '🌨️', desc: '小雪' },
+            368: { icon: '❄️', desc: '大雪' },
+            371: { icon: '❄️', desc: '暴雪' },
+            386: { icon: '⛈️', desc: '雷阵雨' },
+            389: { icon: '⛈️', desc: '雷暴' },
+            392: { icon: '🌨️', desc: '雨夹雪' },
+            395: { icon: '❄️', desc: '冰雹' }
+        };
+
+        async function fetchWeather() {
+            try {
+                // 添加随机参数避免缓存
+                const timestamp = new Date().getTime();
+                const response = await fetch(`weather_data/huangshi_weather.json?t=${timestamp}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // 更新时间
+                const updateTime = new Date(data.last_updated);
+                document.getElementById('update-time').textContent = '更新时间: ' + updateTime.toLocaleString('zh-CN');
+
+                const current = data.current;
+                const forecast = data.forecast;
+
+                const weatherCode = current.weather_code;
+                const weatherInfo = weatherCodes[weatherCode] || { icon: '🌤️', desc: '未知' };
+
+                // 构建当前天气HTML
+                let html = `
+                    <div class="current-weather">
+                        <div class="temperature">${current.temp_C}°C</div>
+                        <div class="weather-icon">${weatherInfo.icon}</div>
+                    </div>
+
+                    <div class="weather-details">
+                        <div class="detail-item">
+                            <div class="detail-label">湿度</div>
+                            <div class="detail-value">${current.humidity}%</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">风速</div>
+                            <div class="detail-value">${current.wind_speed_kmph} km/h</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">天气状况</div>
+                            <div class="detail-value">${weatherInfo.desc}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">体感温度</div>
+                            <div class="detail-value">${current.feels_like_C}°C</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">能见度</div>
+                            <div class="detail-value">${current.visibility} km</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">紫外线</div>
+                            <div class="detail-value">${current.uv_index}</div>
+                        </div>
+                    </div>
+                `;
+
+                // 构建预报HTML
+                html += `
+                    <div class="forecast">
+                        <div class="forecast-title">未来3天预报</div>
+                `;
+
+                const dayNames = ['今天', '明天', '后天'];
+
+                forecast.forEach((day, index) => {
+                    const dayWeatherCode = day.weather_code;
+                    const dayWeatherInfo = weatherCodes[dayWeatherCode] || { icon: '🌤️', desc: '未知' };
+                    const dayName = dayNames[index] || day.date;
+
+                    html += `
+                        <div class="forecast-item">
+                            <div class="forecast-date">${dayName}</div>
+                            <div class="forecast-weather">
+                                <span class="weather-code">${dayWeatherInfo.icon}</span>
+                                ${dayWeatherInfo.desc}
+                            </div>
+                            <div class="forecast-temp">${day.min_temp_C}°C / ${day.max_temp_C}°C</div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+
+                document.getElementById('weather-content').innerHTML = html;
+
+            } catch (error) {
+                console.error('获取天气数据失败:', error);
+                document.getElementById('weather-content').innerHTML = `
+                    <div class="error">
+                        加载天气数据失败<br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+                document.getElementById('update-time').textContent = '更新时间: 加载失败';
+            }
+        }
+
+        // 初始加载
+        fetchWeather();
+
+        // 每5分钟更新一次
+        setInterval(fetchWeather, 300000);
+    </script>
+</body>
+</html>

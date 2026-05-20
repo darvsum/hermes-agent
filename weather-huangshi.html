@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖北黄石天气</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .dashboard {
+            max-width: 900px;
+            width: 100%;
+            padding: 10px;
+        }
+        .header {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.12);
+            text-align: center;
+            color: white;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .header .update-time {
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+        }
+        .header .coords {
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 4px;
+        }
+        .current-section {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.12);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .current-main {
+            text-align: center;
+            min-width: 180px;
+        }
+        .current-icon {
+            font-size: 72px;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+        }
+        .current-temp {
+            font-size: 64px;
+            font-weight: 700;
+            line-height: 1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+        .current-temp span {
+            font-size: 28px;
+            font-weight: 400;
+            vertical-align: top;
+            color: rgba(255,255,255,0.7);
+        }
+        .current-condition {
+            font-size: 18px;
+            margin-top: 8px;
+            color: rgba(255,255,255,0.85);
+        }
+        .current-feels {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 4px;
+        }
+        .current-range {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 6px;
+        }
+        .metrics-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 12px;
+        }
+        .metric-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 14px 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.1);
+        }
+        .metric-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 6px;
+        }
+        .metric-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+        }
+        .sun-bar {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 18px 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.12);
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+        }
+        .sun-item {
+            padding: 4px 8px;
+        }
+        .section {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .hourly-scroll {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        .hourly-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 14px 8px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .hourly-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.1);
+        }
+        .hourly-time {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 6px;
+        }
+        .hourly-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+        .hourly-temp {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+        }
+        .hourly-desc {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+        }
+        .rain-chance {
+            font-size: 11px;
+            color: #64b5f6;
+            margin-top: 4px;
+        }
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .forecast-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.06);
+            color: white;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .forecast-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.1);
+        }
+        .forecast-day {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .forecast-date {
+            font-size: 12px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 12px;
+        }
+        .forecast-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+        .forecast-desc {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 10px;
+        }
+        .forecast-range {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .temp-high { color: #ff8a65; }
+        .temp-low { color: #64b5f6; }
+        .temp-divider { color: rgba(255,255,255,0.3); margin: 0 4px; }
+        .forecast-rain {
+            font-size: 12px;
+            color: #64b5f6;
+            margin-bottom: 8px;
+        }
+        .forecast-uv {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        .uv-high { background: rgba(244,67,54,0.2); color: #ef5350; }
+        .uv-moderate { background: rgba(255,152,0,0.2); color: #ffa726; }
+        .uv-low { background: rgba(76,175,80,0.2); color: #66bb6a; }
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 12px;
+            margin-top: 20px;
+            padding: 10px;
+        }
+        @media (max-width: 600px) {
+            .current-section {
+                flex-direction: column;
+                text-align: center;
+            }
+            .current-temp { font-size: 48px; }
+            .current-icon { font-size: 56px; }
+            .hourly-scroll {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .forecast-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🌤️ 湖北黄石天气</h1>
+            <div class="update-time">更新时间：2026-05-17 01:23:28 | 观测时间：04:30 PM</div>
+            <div class="coords">纬度 30.217°  经度 115.100°</div>
+        </div>
+
+        <div class="current-section">
+            <div class="current-main">
+                <div class="current-icon">⛅</div>
+                <div class="current-temp">25<span>°C</span></div>
+                <div class="current-condition">部分多云</div>
+                <div class="current-feels">体感温度 26°C</div>
+                <div class="current-range">🔼 28°C / 🔽 22°C</div>
+            </div>
+            <div class="metrics-grid">
+                
+        <div class="metric-card">
+            <div class="metric-label">💧 湿度</div>
+            <div class="metric-value">69%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">🌬️ 风速</div>
+            <div class="metric-value">19 km/h</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">🧭 风向</div>
+            <div class="metric-value">ESE</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">🌡️ 气压</div>
+            <div class="metric-value">1010 hPa</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">👁️ 能见度</div>
+            <div class="metric-value">10 km</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">☁️ 云量</div>
+            <div class="metric-value">49%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">☀️ 紫外线</div>
+            <div class="metric-value">0</div>
+        </div>
+            </div>
+        </div>
+
+        <div class="sun-bar">
+            
+        <div class="sun-item">🌅 日出 05:25 AM</div>
+        <div class="sun-item">🌇 日落 07:08 PM</div>
+        <div class="sun-item">🔼 最高 28°C</div>
+        <div class="sun-item">🔽 最低 22°C</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🕐 逐时预报（今日）</div>
+            <div class="hourly-scroll">
+                
+        <div class="hourly-item">
+            <div class="hourly-time">00:00</div>
+            <div class="hourly-icon">⛅</div>
+            <div class="hourly-temp">25°</div>
+            <div class="hourly-desc">部分多云</div>
+            
+        </div>
+        <div class="hourly-item">
+            <div class="hourly-time">03:00</div>
+            <div class="hourly-icon">⛅</div>
+            <div class="hourly-temp">24°</div>
+            <div class="hourly-desc">部分多云</div>
+            
+        </div>
+        <div class="hourly-item">
+            <div class="hourly-time">06:00</div>
+            <div class="hourly-icon">⛅</div>
+            <div class="hourly-temp">23°</div>
+            <div class="hourly-desc">部分多云</div>
+            
+        </div>
+        <div class="hourly-item">
+            <div class="hourly-time">09:00</div>
+            <div class="hourly-icon">🌦️</div>
+            <div class="hourly-temp">24°</div>
+            <div class="hourly-desc">局部阵雨</div>
+            <div class="rain-chance">🌧 72%</div>
+        </div>
+        <div class="hourly-item">
+            <div class="hourly-time">12:00</div>
+            <div class="hourly-icon">🌦️</div>
+            <div class="hourly-temp">28°</div>
+            <div class="hourly-desc">局部阵雨</div>
+            <div class="rain-chance">🌧 63%</div>
+        </div>
+        <div class="hourly-item">
+            <div class="hourly-time">15:00</div>
+            <div class="hourly-icon">🌦️</div>
+            <div class="hourly-temp">25°</div>
+            <div class="hourly-desc">局部阵雨</div>
+            <div class="rain-chance">🌧 100%</div>
+        </div>
+        <div class="hourly-item">
+            <div class="hourly-time">18:00</div>
+            <div class="hourly-icon">⛅</div>
+            <div class="hourly-temp">25°</div>
+            <div class="hourly-desc">部分多云</div>
+            
+        </div>
+        <div class="hourly-item">
+            <div class="hourly-time">21:00</div>
+            <div class="hourly-icon">⛅</div>
+            <div class="hourly-temp">25°</div>
+            <div class="hourly-desc">部分多云</div>
+            
+        </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📅 三日预报</div>
+            <div class="forecast-grid">
+                
+        <div class="forecast-card">
+            <div class="forecast-day">今天</div>
+            <div class="forecast-date">2026-05-17</div>
+            <div class="forecast-icon">🌦️</div>
+            <div class="forecast-desc">局部阵雨</div>
+            <div class="forecast-range">
+                <span class="temp-high">28°</span>
+                <span class="temp-divider">/</span>
+                <span class="temp-low">22°</span>
+            </div>
+            <div class="forecast-rain">🌧 降雨概率 100%</div>
+            <div class="forecast-uv uv-high">UV 10 (高)</div>
+        </div>
+        <div class="forecast-card">
+            <div class="forecast-day">明天</div>
+            <div class="forecast-date">2026-05-18</div>
+            <div class="forecast-icon">🌧️</div>
+            <div class="forecast-desc">小雨</div>
+            <div class="forecast-range">
+                <span class="temp-high">21°</span>
+                <span class="temp-divider">/</span>
+                <span class="temp-low">20°</span>
+            </div>
+            <div class="forecast-rain">🌧 降雨概率 100%</div>
+            <div class="forecast-uv uv-low">UV 2 (低)</div>
+        </div>
+        <div class="forecast-card">
+            <div class="forecast-day">周二</div>
+            <div class="forecast-date">2026-05-19</div>
+            <div class="forecast-icon">🌦️</div>
+            <div class="forecast-desc">局部阵雨</div>
+            <div class="forecast-range">
+                <span class="temp-high">20°</span>
+                <span class="temp-divider">/</span>
+                <span class="temp-low">18°</span>
+            </div>
+            <div class="forecast-rain">🌧 降雨概率 100%</div>
+            <div class="forecast-uv uv-low">UV 1 (低)</div>
+        </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            数据来源：wttr.in | 中国气象局参考
+        </div>
+    </div>
+</body>
+</html>

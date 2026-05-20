@@ -2156,7 +2156,7 @@ def _load_mcp_config() -> Dict[str, dict]:
             load_hermes_dotenv()
         except Exception:
             pass
-        return {name: _interpolate_env_vars(cfg) for name, cfg in servers.items()}
+        return {str(name): _interpolate_env_vars(cfg) for name, cfg in servers.items()}
     except Exception as exc:
         logger.debug("Failed to load MCP config: %s", exc)
         return {}

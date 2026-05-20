@@ -155,6 +155,54 @@ _SENSITIVE_PATH_PREFIXES = (
 _SENSITIVE_EXACT_PATHS = {"/var/run/docker.sock", "/run/docker.sock"}
 
 
+def _check_profile_isolation(filepath: str, task_id: str = "default") -> str | None:
+    """Enforce per-profile path isolation for multi-tenant deployments.
+
+    When TERMINAL_CWD points inside ~/.hermes/profiles/<name>/workspace,
+    block reads/writes to *other* profiles' directories while still allowing
+    access to the user's own profile and shared paths (home, /tmp, etc.).
+
+    Returns an error message string if the path is blocked, or None if allowed.
+    """
+    cwd = os.environ.get("TERMINAL_CWD", "")
+    if not cwd:
+        return None  # No isolation configured
+
+    cwd_expanded = os.path.normpath(os.path.expanduser(cwd))
+
+    # Only enforce isolation when cwd is inside a profile workspace
+    import re
+    m = re.match(r"(.*/\.hermes/profiles/([^/]+))/workspace", cwd_expanded)
+    if not m:
+        return None  # Not a profile workspace — no isolation
+
+    hermes_profiles_dir = m.group(1)  # e.g. /root/.hermes/profiles/zhaorui
+    own_profile = m.group(2)           # e.g. zhaorui
+
+    try:
+        resolved = str(_resolve_path_for_task(filepath, task_id))
+    except (OSError, ValueError):
+        resolved = os.path.normpath(os.path.expanduser(filepath))
+
+    # Allow access to own profile directory (includes workspace, config, .env, etc.)
+    if resolved.startswith(hermes_profiles_dir + "/") or resolved == hermes_profiles_dir:
+        return None
+
+    # Block access to other profiles' directories
+    profiles_base = os.path.dirname(hermes_profiles_dir)  # e.g. /root/.hermes/profiles
+    if resolved.startswith(profiles_base + "/"):
+        # Check if it's another profile
+        rel = os.path.relpath(resolved, profiles_base)
+        other_profile = rel.split("/")[0]
+        if other_profile != own_profile:
+            return (
+                f"Access denied: path '{filepath}' belongs to profile '{other_profile}'. "
+                f"Your workspace is restricted to profile '{own_profile}'."
+            )
+
+    return None
+
+
 def _check_sensitive_path(filepath: str, task_id: str = "default") -> str | None:
     """Return an error message if the path targets a sensitive system location."""
     try:
@@ -448,6 +496,11 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
     """Read a file with pagination and line numbers."""
     try:
         offset, limit = normalize_read_pagination(offset, limit)
+
+        # ── Profile isolation guard ──
+        _isolation_err = _check_profile_isolation(path, task_id)
+        if _isolation_err:
+            return json.dumps({"error": _isolation_err})
 
         # ── Device path guard ─────────────────────────────────────────
         # Block paths that would hang the process (infinite output,
@@ -792,6 +845,10 @@ def _check_file_staleness(filepath: str, task_id: str) -> str | None:
 
 def write_file_tool(path: str, content: str, task_id: str = "default") -> str:
     """Write content to a file."""
+    # ── Profile isolation guard ──
+    _isolation_err = _check_profile_isolation(path, task_id)
+    if _isolation_err:
+        return tool_error(_isolation_err)
     sensitive_err = _check_sensitive_path(path, task_id)
     if sensitive_err:
         return tool_error(sensitive_err)
@@ -860,6 +917,9 @@ def patch_tool(mode: str = "replace", path: str = None, old_string: str = None,
         for _m in _re.finditer(r'^\*\*\*\s+(?:Update|Add|Delete)\s+File:\s*(.+)$', patch, _re.MULTILINE):
             _paths_to_check.append(_m.group(1).strip())
     for _p in _paths_to_check:
+        _isolation_err = _check_profile_isolation(_p, task_id)
+        if _isolation_err:
+            return tool_error(_isolation_err)
         sensitive_err = _check_sensitive_path(_p, task_id)
         if sensitive_err:
             return tool_error(sensitive_err)
@@ -949,6 +1009,11 @@ def search_tool(pattern: str, target: str = "content", path: str = ".",
                 task_id: str = "default") -> str:
     """Search for content or files."""
     try:
+        # ── Profile isolation guard ──
+        _isolation_err = _check_profile_isolation(path, task_id)
+        if _isolation_err:
+            return json.dumps({"error": _isolation_err})
+
         offset, limit = normalize_search_pagination(offset, limit)
 
         # Track searches to detect *consecutive* repeated search loops.

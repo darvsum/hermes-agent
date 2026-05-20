@@ -1,0 +1,140 @@
+{
+  "location": "Huangshih, Hubei",
+  "coordinates": {
+    "lat": "30.217",
+    "lon": "115.100"
+  },
+  "current": {
+    "temperature": "26",
+    "feels_like": "27",
+    "condition": "晴朗",
+    "condition_en": "Sunny",
+    "humidity": "67",
+    "wind_speed": "20",
+    "wind_direction": "SE",
+    "pressure": "1009",
+    "visibility": "10",
+    "uv_index": "0",
+    "cloud_cover": "9",
+    "observation_time": "11:51 AM",
+    "emoji": "☀️",
+    "code": "113"
+  },
+  "daily": {
+    "max_temp": "28",
+    "min_temp": "21",
+    "sunrise": "05:26 AM",
+    "sunset": "07:07 PM",
+    "uv_index": "10"
+  },
+  "hourly": [
+    {
+      "time": "00:00",
+      "temp": "23",
+      "desc_cn": "局部小雨",
+      "emoji": "🌤️",
+      "rain": "100",
+      "humidity": "85",
+      "wind": "18"
+    },
+    {
+      "time": "03:00",
+      "temp": "22",
+      "desc_cn": "晴朗",
+      "emoji": "☀️",
+      "rain": "0",
+      "humidity": "88",
+      "wind": "15"
+    },
+    {
+      "time": "06:00",
+      "temp": "21",
+      "desc_cn": "晴朗",
+      "emoji": "☀️",
+      "rain": "0",
+      "humidity": "85",
+      "wind": "18"
+    },
+    {
+      "time": "09:00",
+      "temp": "24",
+      "desc_cn": "晴朗",
+      "emoji": "☀️",
+      "rain": "0",
+      "humidity": "71",
+      "wind": "26"
+    },
+    {
+      "time": "12:00",
+      "temp": "27",
+      "desc_cn": "晴朗",
+      "emoji": "☀️",
+      "rain": "0",
+      "humidity": "59",
+      "wind": "29"
+    },
+    {
+      "time": "15:00",
+      "temp": "28",
+      "desc_cn": "晴朗",
+      "emoji": "☀️",
+      "rain": "0",
+      "humidity": "56",
+      "wind": "30"
+    },
+    {
+      "time": "18:00",
+      "temp": "26",
+      "desc_cn": "晴朗",
+      "emoji": "☀️",
+      "rain": "0",
+      "humidity": "66",
+      "wind": "24"
+    },
+    {
+      "time": "21:00",
+      "temp": "26",
+      "desc_cn": "晴朗",
+      "emoji": "☀️",
+      "rain": "0",
+      "humidity": "65",
+      "wind": "20"
+    }
+  ],
+  "forecast": [
+    {
+      "date": "2026-05-16",
+      "day_label": "今天",
+      "emoji": "🌤️",
+      "max_temp": "28",
+      "min_temp": "21",
+      "desc_cn": "局部小雨",
+      "uv": "10",
+      "sunrise": "05:26 AM",
+      "sunset": "07:07 PM"
+    },
+    {
+      "date": "2026-05-17",
+      "day_label": "明天",
+      "emoji": "☀️",
+      "max_temp": "28",
+      "min_temp": "21",
+      "desc_cn": "晴朗",
+      "uv": "10",
+      "sunrise": "05:25 AM",
+      "sunset": "07:08 PM"
+    },
+    {
+      "date": "2026-05-18",
+      "day_label": "周一",
+      "emoji": "🌤️",
+      "max_temp": "22",
+      "min_temp": "20",
+      "desc_cn": "零星小雨",
+      "uv": "2",
+      "sunrise": "05:25 AM",
+      "sunset": "07:08 PM"
+    }
+  ],
+  "last_updated": "2026-05-16 20:16:10"
+}

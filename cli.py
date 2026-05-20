@@ -9508,9 +9508,9 @@ class HermesCLI:
         try:
             from tools.mcp_tool import shutdown_mcp_servers, discover_mcp_tools, _servers, _lock
 
-            # Capture old server names
+            # Capture old server names (normalize to str in case of int keys from YAML)
             with _lock:
-                old_servers = set(_servers.keys())
+                old_servers = set(str(k) for k in _servers.keys())
 
             if not self._command_running:
                 print("🔄 Reloading MCP servers...")

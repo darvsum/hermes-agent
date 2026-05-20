@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖北黄石天气</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .weather-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #c62828;
+            background: #ffebee;
+        }
+        
+        .weather-content {
+            padding: 30px;
+        }
+        
+        .current-weather {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .current-temp {
+            text-align: center;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .temp-value {
+            font-size: 64px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .temp-unit {
+            font-size: 24px;
+            color: #7f8c8d;
+        }
+        
+        .weather-icon {
+            font-size: 80px;
+            margin: 10px 0;
+        }
+        
+        .temp-feels-like {
+            font-size: 16px;
+            color: #5a6c7d;
+        }
+        
+        .weather-info {
+            flex: 2;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+        
+        .info-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-card .label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        
+        .info-card .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .daily-summary {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .summary-item {
+            text-align: center;
+        }
+        
+        .summary-item .label {
+            font-size: 12px;
+            color: #5a6c7d;
+            margin-bottom: 5px;
+        }
+        
+        .summary-item .value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .hourly-forecast {
+            margin-top: 25px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .hourly-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+        }
+        
+        .hourly-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px 10px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .hourly-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .hourly-item .time {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+        
+        .hourly-item .temp {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .hourly-item .weather {
+            font-size: 12px;
+            color: #5a6c7d;
+        }
+        
+        .update-time {
+            text-align: center;
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+        }
+        
+        @media (max-width: 600px) {
+            .current-weather {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .temp-value {
+                font-size: 48px;
+            }
+            
+            .weather-icon {
+                font-size: 60px;
+            }
+            
+            .hourly-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="weather-container">
+        <div class="header">
+            <h1>🌤️ 湖北黄石天气</h1>
+            <p id="location-display">数据加载中...</p>
+        </div>
+
+        <div id="loading" class="loading">
+            🌦️ 正在获取天气数据...
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            ⚠️ 获取天气数据失败，请稍后重试
+        </div>
+
+        <div id="weather-content" class="weather-content" style="display: none;">
+            <div class="current-weather">
+                <div class="current-temp">
+                    <div class="weather-icon" id="current-icon">🌤️</div>
+                    <div>
+                        <span class="temp-value" id="current-temp">--</span>
+                        <span class="temp-unit">°C</span>
+                    </div>
+                    <div class="temp-feels-like">体感温度：<span id="feels-like">--</span>°C</div>
+                </div>
+                <div class="weather-info">
+                    <div class="info-card">
+                        <div class="label">天气状况</div>
+                        <div class="value" id="weather-desc">--</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">湿度</div>
+                        <div class="value" id="humidity">--%</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">风速</div>
+                        <div class="value" id="windspeed">--</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">风向</div>
+                        <div class="value" id="winddir">--</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">气压</div>
+                        <div class="value" id="pressure">--</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">能见度</div>
+                        <div class="value" id="visibility">--</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">紫外线指数</div>
+                        <div class="value" id="uv-index">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-summary">
+                <div class="summary-item">
+                    <div class="label">今日最高</div>
+                    <div class="value" id="daily-max">--</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">今日最低</div>
+                    <div class="value" id="daily-min">--</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">日出时间</div>
+                    <div class="value" id="sunrise">--</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">日落时间</div>
+                    <div class="value" id="sunset">--</div>
+                </div>
+            </div>
+
+            <div class="hourly-forecast">
+                <div class="section-title">📍 未来12小时预报</div>
+                <div class="hourly-grid" id="hourly-forecast">
+                </div>
+            </div>
+
+            <div class="update-time">
+                数据更新时间：<span id="last-updated">--</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 天气状况对应的emoji图标
+        const weatherEmojis = {
+            '晴朗': '☀️',
+            'Sunny': '☀️',
+            'Clear': '☀️',
+            '多云': '⛅',
+            'Partly Cloudy': '⛅',
+            'Overcast': '☁️',
+            '阴天': '☁️',
+            'Cloudy': '☁️',
+            '小雨': '🌧️',
+            'Light rain': '🌧️',
+            '阵雨': '🌦️',
+            'Light rain shower': '🌦️',
+            '局部小雨': '🌧️',
+            '薄雾': '🌫️',
+            'Mist': '🌫️',
+            '雾': '🌫️',
+            'Fog': '🌫️'
+        };
+
+        // 内嵌天气数据
+        const weatherData = {
+            "location": "Huangshih, China",
+            "coordinates": {
+                "lat": "30.217",
+                "lon": "115.100"
+            },
+            "current": {
+                "temperature": "28°C",
+                "feels_like": "29°C",
+                "condition": "阴天",
+                "humidity": "57%",
+                "wind_speed": "28 km/h",
+                "wind_direction": "SE",
+                "pressure": "1009 hPa",
+                "uv_index": "6",
+                "cloud_cover": "91%",
+                "observation_time": "07:01 AM",
+                "icon": ""
+            },
+            "daily": {
+                "max_temp": "28°C",
+                "min_temp": "21°C",
+                "sunrise": "05:26 AM",
+                "sunset": "07:07 PM",
+                "uv_index": "10",
+                "sun_hours": "13.8"
+            },
+            "hourly": [
+                {
+                    "time": "00:00",
+                    "temp": "23",
+                    "weather": "晴朗",
+                    "icon": "",
+                    "chance_of_rain": "0"
+                },
+                {
+                    "time": "05:00",
+                    "temp": "22",
+                    "weather": "晴朗",
+                    "icon": "",
+                    "chance_of_rain": "0"
+                },
+                {
+                    "time": "10:00",
+                    "temp": "21",
+                    "weather": "多云",
+                    "icon": "",
+                    "chance_of_rain": "0"
+                },
+                {
+                    "time": "15:00",
+                    "temp": "24",
+                    "weather": "多云",
+                    "icon": "",
+                    "chance_of_rain": "0"
+                },
+                {
+                    "time": "20:00",
+                    "temp": "27",
+                    "weather": "多云",
+                    "icon": "",
+                    "chance_of_rain": "0"
+                },
+                {
+                    "time": "25:00",
+                    "temp": "28",
+                    "weather": "阴天",
+                    "icon": "",
+                    "chance_of_rain": "0"
+                },
+                {
+                    "time": "30:00",
+                    "temp": "26",
+                    "weather": "多云",
+                    "icon": "",
+                    "chance_of_rain": "0"
+                },
+                {
+                    "time": "35:00",
+                    "temp": "25",
+                    "weather": "多云",
+                    "icon": "",
+                    "chance_of_rain": "0"
+                }
+            ],
+            "last_updated": "2026-05-16 15:02:30"
+        };
+
+        // 显示天气数据
+        function displayWeather(data) {
+            // 设置位置信息
+            document.getElementById('location-display').textContent = data.location;
+            
+            // 当前天气
+            document.getElementById('current-temp').textContent = data.current.temperature.replace('°C', '');
+            document.getElementById('feels-like').textContent = data.current.feels_like.replace('°C', '');
+            document.getElementById('weather-desc').textContent = data.current.condition;
+            document.getElementById('humidity').textContent = data.current.humidity;
+            document.getElementById('windspeed').textContent = data.current.wind_speed;
+            document.getElementById('winddir').textContent = data.current.wind_direction;
+            document.getElementById('pressure').textContent = data.current.pressure;
+            document.getElementById('uv-index').textContent = data.current.uv_index;
+            
+            // 根据天气状况显示对应图标
+            const iconEmoji = weatherEmojis[data.current.condition] || '🌤️';
+            document.getElementById('current-icon').textContent = iconEmoji;
+            
+            // 每日摘要
+            document.getElementById('daily-max').textContent = data.daily.max_temp;
+            document.getElementById('daily-min').textContent = data.daily.min_temp;
+            document.getElementById('sunrise').textContent = data.daily.sunrise;
+            document.getElementById('sunset').textContent = data.daily.sunset;
+            
+            // 小时预报
+            const hourlyForecast = document.getElementById('hourly-forecast');
+            hourlyForecast.innerHTML = data.hourly.map(hour => {
+                const hourIcon = weatherEmojis[hour.weather] || '🌤️';
+                return `
+                    <div class="hourly-item">
+                        <div class="time">${hour.time}</div>
+                        <div class="weather">${hourIcon}</div>
+                        <div class="temp">${hour.temp}°</div>
+                    </div>
+                `;
+            }).join('');
+            
+            // 更新时间
+            document.getElementById('last-updated').textContent = data.last_updated;
+            
+            // 显示内容，隐藏加载和错误信息
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('weather-content').style.display = 'block';
+        }
+
+        // 页面加载完成后显示天气数据
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                displayWeather(weatherData);
+            } catch (error) {
+                console.error('显示天气数据失败:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

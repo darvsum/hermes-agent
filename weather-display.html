@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖北黄石天气</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .weather-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .city-name {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .update-time {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .current-weather {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+        }
+        .temperature {
+            font-size: 4em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .weather-icon {
+            font-size: 3em;
+        }
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .detail-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .detail-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .detail-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        .forecast {
+            margin-top: 30px;
+        }
+        .forecast-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .forecast-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+        .forecast-item:hover {
+            transform: translateX(5px);
+        }
+        .forecast-date {
+            flex: 1;
+            font-weight: bold;
+            color: #333;
+        }
+        .forecast-weather {
+            flex: 1;
+            text-align: center;
+            color: #666;
+        }
+        .forecast-temp {
+            flex: 1;
+            text-align: right;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .weather-code {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="weather-card">
+        <div class="header">
+            <div class="city-name">🌍 湖北黄石</div>
+            <div class="update-time" id="update-time">更新时间: 加载中...</div>
+        </div>
+
+        <div class="current-weather">
+            <div class="temperature" id="current-temp">--°C</div>
+            <div class="weather-icon" id="weather-icon">🌤️</div>
+        </div>
+
+        <div class="weather-details">
+            <div class="detail-item">
+                <div class="detail-label">湿度</div>
+                <div class="detail-value" id="humidity">--%</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">风速</div>
+                <div class="detail-value" id="wind-speed">-- km/h</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">天气状况</div>
+                <div class="detail-value" id="weather-condition">--</div>
+            </div>
+        </div>
+
+        <div class="forecast">
+            <div class="forecast-title">未来7天预报</div>
+            <div id="forecast-container">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const weatherCodes = {
+            0: { icon: '☀️', desc: '晴朗' },
+            1: { icon: '🌤️', desc: '主要晴朗' },
+            2: { icon: '⛅', desc: '部分多云' },
+            3: { icon: '☁️', desc: '阴天' },
+            45: { icon: '🌫️', desc: '雾' },
+            48: { icon: '🌫️', desc: '雾凇' },
+            51: { icon: '🌦️', desc: '小毛毛雨' },
+            53: { icon: '🌦️', desc: '中度毛毛雨' },
+            55: { icon: '🌧️', desc: '毛毛雨' },
+            61: { icon: '🌧️', desc: '小雨' },
+            63: { icon: '🌧️', desc: '中雨' },
+            65: { icon: '🌧️', desc: '大雨' },
+            66: { icon: '🌨️', desc: '冰雨' },
+            67: { icon: '🌨️', desc: '冰雨' },
+            71: { icon: '❄️', desc: '小雪' },
+            73: { icon: '❄️', desc: '中雪' },
+            75: { icon: '❄️', desc: '大雪' },
+            77: { icon: '❄️', desc: '雪粒' },
+            80: { icon: '🌦️', desc: '小雨' },
+            81: { icon: '🌧️', desc: '中雨' },
+            82: { icon: '🌧️', desc: '大雨' },
+            85: { icon: '🌨️', desc: '小雪' },
+            86: { icon: '🌨️', desc: '大雪' },
+            95: { icon: '⛈️', desc: '雷暴' },
+            96: { icon: '⛈️', desc: '雷暴伴冰雹' },
+            99: { icon: '⛈️', desc: '强雷暴伴冰雹' }
+        };
+
+        async function fetchWeather() {
+            const url = 'https://api.open-meteo.com/v1/forecast?latitude=30.2000&longitude=115.0380&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai';
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const now = new Date(data.current.time);
+                document.getElementById('update-time').textContent = '更新时间: ' + now.toLocaleString('zh-CN');
+
+                document.getElementById('current-temp').textContent = data.current.temperature_2m.toFixed(1) + '°C';
+                document.getElementById('humidity').textContent = data.current.relative_humidity_2m + '%';
+                document.getElementById('wind-speed').textContent = data.current.wind_speed_10m.toFixed(1) + ' km/h';
+
+                const weatherCode = data.current.weather_code;
+                const weatherInfo = weatherCodes[weatherCode] || { icon: '🌤️', desc: '未知' };
+                document.getElementById('weather-icon').textContent = weatherInfo.icon;
+                document.getElementById('weather-condition').textContent = weatherInfo.desc;
+
+                const forecastContainer = document.getElementById('forecast-container');
+                forecastContainer.innerHTML = '';
+
+                for (let i = 0; i < data.daily.time.length; i++) {
+                    const date = new Date(data.daily.time[i]);
+                    const dayCode = data.daily.weather_code[i];
+                    const dayInfo = weatherCodes[dayCode] || { icon: '🌤️', desc: '未知' };
+                    const maxTemp = data.daily.temperature_2m_max[i].toFixed(1);
+                    const minTemp = data.daily.temperature_2m_min[i].toFixed(1);
+                    const dayName = i === 0 ? '今天' : i === 1 ? '明天' : date.toLocaleDateString('zh-CN', { weekday: 'long', month: 'short', day: 'numeric' });
+
+                    const forecastItem = document.createElement('div');
+                    forecastItem.className = 'forecast-item';
+                    forecastItem.innerHTML = `
+                        <div class="forecast-date">${dayName}</div>
+                        <div class="forecast-weather">
+                            <span class="weather-code">${dayInfo.icon}</span>
+                            ${dayInfo.desc}
+                        </div>
+                        <div class="forecast-temp">${minTemp}°C / ${maxTemp}°C</div>
+                    `;
+                    forecastContainer.appendChild(forecastItem);
+                }
+            } catch (error) {
+                console.error('获取天气数据失败:', error);
+                document.getElementById('update-time').textContent = '更新时间: 获取失败';
+            }
+        }
+
+        fetchWeather();
+        setInterval(fetchWeather, 600000); // 每10分钟更新一次
+    </script>
+</body>
+</html>
