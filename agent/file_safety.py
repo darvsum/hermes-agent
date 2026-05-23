@@ -72,8 +72,41 @@ def get_safe_write_root() -> Optional[str]:
         return None
 
 
+def _build_sandbox_protected_paths(sandbox_root: str) -> set[str]:
+    """Return paths inside the sandbox that must never be written.
+
+    These are configuration and credential files that, if modified by the
+    agent, would weaken or bypass the sandbox itself.
+    """
+    root = Path(sandbox_root)
+    protected_names = [
+        "config.yaml",
+        ".env",
+        "approved.json",
+        "accounts",      # weixin token directory
+    ]
+    result = set()
+    for name in protected_names:
+        p = (root / name).resolve()
+        result.add(str(p))
+        # Also protect the directory itself for "accounts"
+        if name == "accounts":
+            result.add(str(p) + os.sep)
+    return result
+
+
+def _build_sandbox_protected_prefixes(sandbox_root: str) -> list[str]:
+    """Return directory prefixes inside the sandbox that must never be written."""
+    root = Path(sandbox_root)
+    return [
+        str((root / "accounts").resolve()) + os.sep,
+        str((root / "weixin").resolve()) + os.sep,
+    ]
+
+
 def is_write_denied(path: str) -> bool:
-    """Return True if path is blocked by the write denylist or safe root."""
+    """Return True if path is blocked by the write denylist or safe root
+    or falls outside the configured file sandbox."""
     home = os.path.realpath(os.path.expanduser("~"))
     resolved = os.path.realpath(os.path.expanduser(str(path)))
 
@@ -87,13 +120,74 @@ def is_write_denied(path: str) -> bool:
     if safe_root and not (resolved == safe_root or resolved.startswith(safe_root + os.sep)):
         return True
 
+    # ── File sandbox restriction (read boundary) ──────────────────────
+    # When HERMES_FILE_SANDBOX is set, writes must also fall inside it.
+    sandbox = os.getenv("HERMES_FILE_SANDBOX", "")
+    if sandbox:
+        sandbox_root = os.path.realpath(os.path.expanduser(sandbox))
+        if not (resolved == sandbox_root or resolved.startswith(sandbox_root + os.sep)):
+            return True
+        # Even inside the sandbox, protect config/credential files that
+        # could be used to weaken or bypass the sandbox itself.
+        for pp in _build_sandbox_protected_paths(sandbox_root):
+            if resolved == pp or (pp.endswith(os.sep) and resolved.startswith(pp)):
+                return True
+        for prefix in _build_sandbox_protected_prefixes(sandbox_root):
+            if resolved.startswith(prefix):
+                return True
+
+    # ── Write sandbox restriction (write boundary) ────────────────────
+    # When HERMES_FILE_WRITE_SANDBOX is set, writes are restricted to
+    # this narrower directory (typically the workspace/ subdirectory).
+    # This is stricter than HERMES_FILE_SANDBOX which controls reads.
+    write_sandbox = os.getenv("HERMES_FILE_WRITE_SANDBOX", "")
+    if write_sandbox:
+        write_root = os.path.realpath(os.path.expanduser(write_sandbox))
+        if not (resolved == write_root or resolved.startswith(write_root + os.sep)):
+            return True
+
     return False
 
 
 def get_read_block_error(path: str) -> Optional[str]:
-    """Return an error message when a read targets internal Hermes cache files."""
+    """Return an error message when a read targets internal Hermes cache files
+    or falls outside the configured file sandbox."""
     resolved = Path(path).expanduser().resolve()
     hermes_home = _hermes_home_path().resolve()
+
+    # ── File sandbox restriction ──────────────────────────────────────
+    # When HERMES_FILE_SANDBOX is set, only paths under that root are
+    # readable.  This prevents users from reading other profiles' config
+    # files, API keys, or any system files outside their workspace.
+    sandbox = os.getenv("HERMES_FILE_SANDBOX", "")
+    if sandbox:
+        sandbox_root = Path(sandbox).expanduser().resolve()
+        try:
+            resolved.relative_to(sandbox_root)
+        except ValueError:
+            return (
+                f"Access denied: {path} is outside the allowed workspace. "
+                f"File access is restricted to {sandbox_root} and its subdirectories."
+            )
+        # Even inside the sandbox, block reading sensitive config/credential
+        # files that contain API keys or could weaken the sandbox.
+        _sandbox_root_str = str(sandbox_root)
+        for pp in _build_sandbox_protected_paths(_sandbox_root_str):
+            pp_path = Path(pp)
+            if resolved == pp_path or resolved.is_relative_to(pp_path):
+                return (
+                    f"Access denied: {path} contains sensitive configuration "
+                    f"and cannot be read for security reasons."
+                )
+        for prefix in _build_sandbox_protected_prefixes(_sandbox_root_str):
+            prefix_path = Path(prefix.rstrip(os.sep))
+            if resolved.is_relative_to(prefix_path):
+                return (
+                    f"Access denied: {path} contains sensitive credentials "
+                    f"and cannot be read for security reasons."
+                )
+
+    # ── Hermes internal cache guard ───────────────────────────────────
     blocked_dirs = [
         hermes_home / "skills" / ".hub" / "index-cache",
         hermes_home / "skills" / ".hub",

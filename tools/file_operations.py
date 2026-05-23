@@ -905,6 +905,11 @@ class ShellFileOperations(FileOperations):
         # Expand ~ and other shell paths
         path = self._expand_path(path)
 
+        # Resolve relative paths against the terminal cwd so that
+        # HERMES_FILE_WRITE_SANDBOX checks work correctly.
+        if not os.path.isabs(path):
+            path = os.path.normpath(os.path.join(self.cwd, path))
+
         # Block writes to sensitive paths
         if _is_write_denied(path):
             return WriteResult(error=f"Write denied: '{path}' is a protected system/credential file.")
@@ -1015,6 +1020,11 @@ class ShellFileOperations(FileOperations):
         """
         # Expand ~ and other shell paths
         path = self._expand_path(path)
+
+        # Resolve relative paths against the terminal cwd so that
+        # HERMES_FILE_WRITE_SANDBOX checks work correctly.
+        if not os.path.isabs(path):
+            path = os.path.normpath(os.path.join(self.cwd, path))
 
         # Block writes to sensitive paths
         if _is_write_denied(path):

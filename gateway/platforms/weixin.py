@@ -1334,9 +1334,31 @@ class WeixinAdapter(BasePlatformAdapter):
                 if ret not in {0, None} or errcode not in {0, None}:
                     if (ret == SESSION_EXPIRED_ERRCODE or errcode == SESSION_EXPIRED_ERRCODE
                             or _is_stale_session_ret(ret, errcode, response.get("errmsg"))):
-                        logger.error("[%s] Session expired; pausing for 10 minutes", self.name)
-                        await asyncio.sleep(600)
-                        consecutive_failures = 0
+                        # sync_buf (long-poll cursor) has expired — reset it to
+                        # force a fresh connection instead of sleeping forever.
+                        # Mirrors send_message's -14 recovery: strip stale session
+                        # state and retry immediately.
+                        if sync_buf:
+                            logger.warning("[%s] Session expired; resetting sync buffer and retrying", self.name)
+                            sync_buf = ""
+                            _save_sync_buf(self._hermes_home, self._account_id, "")
+                            consecutive_failures = 0
+                            continue
+                        # sync_buf already empty — bot_token itself may be invalid.
+                        # After repeated failures, declare a fatal error so the
+                        # gateway's reconnection machinery can kick in (or the
+                        # process exits and systemd restarts it).
+                        consecutive_failures += 1
+                        if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                            logger.error("[%s] Bot token appears invalid (session expired with empty sync_buf %d times); triggering reconnect", self.name, consecutive_failures)
+                            self._set_fatal_error(
+                                "weixin_session_expired",
+                                "Weixin session expired — bot token may be invalid. Re-scan QR code or restart gateway.",
+                                retryable=True,
+                            )
+                            break
+                        logger.error("[%s] Session expired with empty sync_buf (%d/%d); backing off 30s", self.name, consecutive_failures, MAX_CONSECUTIVE_FAILURES)
+                        await asyncio.sleep(30)
                         continue
                     consecutive_failures += 1
                     logger.warning(
@@ -1521,7 +1543,31 @@ class WeixinAdapter(BasePlatformAdapter):
                 full_url=media.get("full_url"),
                 timeout_seconds=60.0,
             )
-            return cache_document_from_bytes(data, filename), mime
+            cached_path = cache_document_from_bytes(data, filename)
+            # Mirror received documents to workspace/received/ so users
+            # can access them via the workspace UI and download them.
+            try:
+                from pathlib import Path as _P
+                _ws = os.getenv("HERMES_FILE_WRITE_SANDBOX", "")
+                if _ws:
+                    _recv_dir = _P(_ws) / "received"
+                    _recv_dir.mkdir(parents=True, exist_ok=True)
+                    _dest = _recv_dir / filename
+                    # Avoid overwriting: append suffix if name collides
+                    if _dest.exists():
+                        _stem = _dest.stem
+                        _sfx = _dest.suffix
+                        _n = 1
+                        while _dest.exists():
+                            _dest = _recv_dir / f"{_stem}_{_n}{_sfx}"
+                            _n += 1
+                    _P(cached_path).replace(_dest)
+                    # Return workspace path so agent references the
+                    # user-visible copy.
+                    cached_path = str(_dest)
+            except Exception:
+                pass  # non-fatal: cache copy remains valid
+            return cached_path, mime
         except Exception as exc:
             logger.warning("[%s] file download failed: %s", self.name, exc)
             return None, mime

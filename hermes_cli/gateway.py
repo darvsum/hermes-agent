@@ -2169,7 +2169,7 @@ def generate_systemd_unit(system: bool = False, run_as_user: str | None = None) 
         path_entries.extend(_build_wsl_interop_paths(path_entries))
         path_entries.extend(common_bin_paths)
         sane_path = ":".join(path_entries)
-        return f"""[Unit]
+        unit = f"""[Unit]
 Description={SERVICE_DESCRIPTION}
 After=network-online.target
 Wants=network-online.target
@@ -2192,16 +2192,21 @@ RestartSec=5
 RestartMaxDelaySec=300
 RestartSteps=5
 RestartForceExitStatus={GATEWAY_SERVICE_RESTART_EXIT_CODE}
-KillMode=mixed
+KillMode=process
 KillSignal=SIGTERM
 ExecReload=/bin/kill -USR1 $MAINPID
 TimeoutStopSec={restart_timeout}
+LimitNOFILE=65536
+MemoryMax=1G
+MemorySwapMax=512M
+TasksMax=256
 StandardOutput=journal
 StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
 """
+        return _apply_systemd_overrides(unit, _read_systemd_overrides())
 
     hermes_home = str(get_hermes_home().resolve())
     profile_arg = _profile_arg(hermes_home)
@@ -2209,7 +2214,7 @@ WantedBy=multi-user.target
     path_entries.extend(_build_wsl_interop_paths(path_entries))
     path_entries.extend(common_bin_paths)
     sane_path = ":".join(path_entries)
-    return f"""[Unit]
+    unit = f"""[Unit]
 Description={SERVICE_DESCRIPTION}
 After=network-online.target
 Wants=network-online.target
@@ -2227,16 +2232,74 @@ RestartSec=5
 RestartMaxDelaySec=300
 RestartSteps=5
 RestartForceExitStatus={GATEWAY_SERVICE_RESTART_EXIT_CODE}
-KillMode=mixed
+KillMode=process
 KillSignal=SIGTERM
 ExecReload=/bin/kill -USR1 $MAINPID
 TimeoutStopSec={restart_timeout}
+LimitNOFILE=65536
+MemoryMax=1G
+MemorySwapMax=512M
+TasksMax=256
 StandardOutput=journal
 StandardError=journal
 
 [Install]
 WantedBy=default.target
 """
+    return _apply_systemd_overrides(unit, _read_systemd_overrides())
+
+
+def _read_systemd_overrides() -> dict[str, str]:
+    """Read ``gateway.systemd_service_overrides`` from config.yaml."""
+    try:
+        from hermes_cli.config import load_config
+        cfg = load_config()
+        overrides = cfg.get("gateway", {}).get("systemd_service_overrides", {})
+        if isinstance(overrides, dict):
+            return {str(k): str(v) for k, v in overrides.items()}
+    except Exception:
+        pass
+    return {}
+
+
+def _apply_systemd_overrides(unit_text: str, overrides: dict[str, str]) -> str:
+    """Apply key=value overrides to the [Service] section of a systemd unit.
+
+    If a key already exists, its value is replaced.  If not, the line is
+    appended just before the next section header (or end of file).
+    """
+    if not overrides:
+        return unit_text
+
+    lines = unit_text.splitlines()
+    in_service = False
+    service_end = len(lines)
+    inserted_keys: set[str] = set()
+
+    for i, line in enumerate(lines):
+        if line.strip() == "[Service]":
+            in_service = True
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            if in_service:
+                service_end = i
+                in_service = False
+            continue
+        if in_service:
+            for key, value in overrides.items():
+                if line.startswith(f"{key}="):
+                    lines[i] = f"{key}={value}"
+                    inserted_keys.add(key)
+                    break
+
+    # Append remaining keys that weren't found
+    remaining = {k: v for k, v in overrides.items() if k not in inserted_keys}
+    if remaining:
+        insert_lines = [f"{k}={v}" for k, v in remaining.items()]
+        lines[service_end:service_end] = insert_lines
+
+    return "\n".join(lines)
+
 
 def _normalize_service_definition(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.strip().splitlines())

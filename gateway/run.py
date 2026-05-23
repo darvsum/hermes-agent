@@ -547,6 +547,43 @@ if _config_path.exists():
                 os.environ["HERMES_AUTO_CONTINUE_FRESHNESS"] = str(
                     _agent_cfg["gateway_auto_continue_freshness"]
                 )
+            # ── File sandbox ───────────────────────────────────────────
+            # When agent.file_sandbox is a path string, set HERMES_FILE_SANDBOX
+            # so that read_file / write_file / patch / search_files are
+            # restricted to that directory tree.  When it is the boolean
+            # ``true``, default to the profile workspace.
+            if "file_sandbox" in _agent_cfg:
+                sandbox_val = _agent_cfg["file_sandbox"]
+                if sandbox_val is True:
+                    # Auto-resolve: use the profile directory as sandbox
+                    # so the agent can access workspace, logs, sessions, etc.
+                    # but NOT other profiles or ~/.hermes/ root.
+                    # When HERMES_HOME already points to a profile dir
+                    # (e.g. /root/.hermes/profiles/chenjunlin), use it directly.
+                    # Otherwise resolve via profile name.
+                    if _hermes_home.name != "profiles" and (_hermes_home.parent.name == "profiles" or _hermes_home.name == ".hermes"):
+                        sandbox_path = str(_hermes_home)
+                        write_sandbox_path = str(_hermes_home / "workspace")
+                    else:
+                        try:
+                            from hermes_cli.profiles import get_active_profile_name
+                            _pn = get_active_profile_name() or ""
+                        except Exception:
+                            _pn = ""
+                        sandbox_path = str(_hermes_home / "profiles" / _pn) if _pn else str(_hermes_home)
+                        write_sandbox_path = str(_hermes_home / "profiles" / _pn / "workspace") if _pn else str(_hermes_home)
+                    os.environ["HERMES_FILE_SANDBOX"] = sandbox_path
+                    # Write sandbox is narrower — restricts write_file/patch
+                    # to the workspace/ subdirectory so agent-generated files
+                    # are always saved there, not in logs/ or sessions/.
+                    os.environ["HERMES_FILE_WRITE_SANDBOX"] = write_sandbox_path
+                elif isinstance(sandbox_val, str) and sandbox_val:
+                    os.environ["HERMES_FILE_SANDBOX"] = sandbox_val
+                    os.environ["HERMES_FILE_WRITE_SANDBOX"] = sandbox_val
+                elif not sandbox_val:
+                    # Explicitly disabled — remove any inherited value
+                    os.environ.pop("HERMES_FILE_SANDBOX", None)
+                    os.environ.pop("HERMES_FILE_WRITE_SANDBOX", None)
         _display_cfg = _cfg.get("display", {})
         if _display_cfg and isinstance(_display_cfg, dict):
             if "busy_input_mode" in _display_cfg:
